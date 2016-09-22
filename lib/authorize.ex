@@ -9,10 +9,10 @@ defmodule Authorize do
 
   def create_authorize() do
     quote do
-      def is_changeset?(%Ecto.Changeset{}), do: true
+      def is_changeset?(%{__struct__: :"Elixir.Ecto.Changeset"}), do: true
       def is_changeset?(_), do: false
 
-      def get_struct(%Ecto.Changeset{} = changeset), do: changeset.data
+      def get_struct(%{__struct__: :"Elixir.Ecto.Changeset"} = changeset), do: changeset.data
       def get_struct(struct), do: struct
 
       def authorize(struct_or_changeset, actor, context) do

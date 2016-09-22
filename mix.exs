@@ -1,9 +1,9 @@
-defmodule Gatekeeper.Mixfile do
+defmodule Authorize.Mixfile do
   use Mix.Project
 
   def project do
     [
-      app: :gatekeeper,
+      app: :authorize,
       description: "Rule based authorization for Elixir",
       version: "0.1.0",
       elixir: "~> 1.3",
@@ -24,14 +24,16 @@ defmodule Gatekeeper.Mixfile do
   defp deps do
     [
       {:ecto, "~> 2.0"},
+      {:ex_doc, ">= 0.0.0", only: :dev},
     ]
   end
 
   defp package do
     [
-      contributors: ["Jaap Frölich"],
+      name: :authorize,
+      maintainers: ["Jaap Frölich"],
       licenses: ["MIT"],
-      links: %{github: "https://github.com/jfrolich/gatekeeper"},
+      links: %{github: "https://github.com/jfrolich/authorize"},
       files: ~w(lib mix.exs README.md),
     ]
   end

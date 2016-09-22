@@ -1,4 +1,4 @@
-defmodule Gatekeeper do
+defmodule Authorize do
   defmacro __using__(_options) do
     quote do
       import unquote(__MODULE__)

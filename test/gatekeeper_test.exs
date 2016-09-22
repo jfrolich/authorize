@@ -1,6 +1,6 @@
-defmodule GatekeeperTest do
+defmodule AuthorizeTest do
   use ExUnit.Case
-  doctest Gatekeeper
+  doctest Authorize
 
 
   defmodule Item do
@@ -16,7 +16,7 @@ defmodule GatekeeperTest do
   end
 
   defmodule SubItem.Authorization do
-    use Gatekeeper
+    use Authorize
 
     # if the actor is able to update the parent item, they are able to create /
     # update / delete a subitem
@@ -31,7 +31,7 @@ defmodule GatekeeperTest do
   end
 
   defmodule Item.Authorization do
-    use Gatekeeper
+    use Authorize
 
     rule [:read], "only admins can read invisible items", struct_or_changeset, actor do
       if !actor.admin? and get_struct(struct_or_changeset).invisible?, do: :unauthorized, else: :ok

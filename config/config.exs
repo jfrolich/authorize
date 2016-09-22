@@ -10,11 +10,11 @@ use Mix.Config
 
 # You can configure for your application as:
 #
-#     config :gatekeeper, key: :value
+#     config :authorize, key: :value
 #
 # And access this configuration in your application as:
 #
-#     Application.get_env(:gatekeeper, :key)
+#     Application.get_env(:authorize, :key)
 #
 # Or configure a 3rd-party app:
 #

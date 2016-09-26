@@ -13,6 +13,14 @@ Any rule can return three states:
 How this translate to code is as follows:
 
 ```elixir
+defmodule Item do
+  defstruct user_id: nil, private?: false, invisible?: false
+end
+
+defmodule User do
+  defstruct id: nil, name: nil, admin?: false
+end
+
 defmodule Item.Authorization do
   use Authorize
 

@@ -44,7 +44,7 @@ iex> normal_user = %User{id: 1, name: "Ed", admin?: false}
 iex> Item.Authorization.authorize(normal_user, invisible_item, :read)
 {:unauthorized, %Item{...}, "only admins can read invisible items"}
 
-iex> Item.Authorization.authorize(normal_user, invisible_item, :read)
+iex> Item.Authorization.authorize(admin, invisible_item, :read)
 {:ok, %Item{...}}
 
 iex> private_item = %{invisible_item | invisible?: false}

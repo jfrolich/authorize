@@ -19,19 +19,39 @@ defmodule Item.Authorization do
   rule [:read], "only admins can read invisible items", struct_or_changeset, actor do
     if !actor.admin? and get_struct(struct_or_changeset).invisible?, do: :unauthorized, else: :ok
   end
+
+  rule [:read], "members can only read their own private items", struct_or_changeset, actor do
+    item = get_struct(struct_or_changeset)
+    if !item.public? and item.user_id == actor.id do
+      :ok
+    else
+      :undecided
+    end
+  end
+
+  rule [:read], "all members can read public items", struct_or_changeset, actor do
+    if get_struct(struct_or_changeset).public?, do: :ok
+  end
 end
 ```
 
-We can now use this authorization module in the following way:
+We can now use this authorization module in the following way, with ordered rules (executed from top to bottom):
 ```elixir
-iex> normal_user = %User{name: "Ed", admin?: false}
-...> invisible_item = %Item{readonly?: false, invisible?: true}
+iex> normal_user = %User{id: 1, name: "Ed", admin?: false}
+...> admin = %User{id: 2, name: "Admin", admin?: true}
+...> invisible_item = %Item{private?: true, invisible?: true, user_id: 2}
 
-...> Item.Authorization.authorize(normal_user, invisible_item, :read)
+iex> Item.Authorization.authorize(normal_user, invisible_item, :read)
 {:unauthorized, %Item{...}, "only admins can read invisible items"}
 
-iex> admin = %User{name: "Admin", admin?: true}
-...> Item.Authorization.authorize(normal_user, invisible_item, :read)
+iex> Item.Authorization.authorize(normal_user, invisible_item, :read)
+{:ok, %Item{...}}
+
+iex> private_item = %{invisible_item | invisible?: false}
+...> Item.Authorization.authorize(normal_user, private_item, :read)
+{:unauthorized, %Item{...}, "members can only read their own private items"}
+
+iex> Item.Authorization.authorize(admin, private_item, :read)
 {:ok, %Item{...}}
 ```
 

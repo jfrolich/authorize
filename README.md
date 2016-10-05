@@ -25,7 +25,7 @@ defmodule Item.Authorization do
   use Authorize
 
   rule [:read], "only admins can read invisible items", struct_or_changeset, actor do
-    if !actor.admin? and get_struct(struct_or_changeset).invisible?, do: :unauthorized, else: :ok
+    if !actor.admin? and get_struct(struct_or_changeset).invisible?, do: :undecided, else: :ok
   end
 
   rule [:read], "members can only read their own private items", struct_or_changeset, actor do

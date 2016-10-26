@@ -25,7 +25,7 @@ defmodule Item.Authorization do
   use Authorize
 
   rule [:read], "only admins can read invisible items", struct_or_changeset, actor do
-    if !actor.admin? and get_struct(struct_or_changeset).invisible?, do: :unauthorized, else: :ok
+    if !actor.admin? and get_struct(struct_or_changeset).invisible?, do: :undecided, else: :ok
   end
 
   rule [:read], "members can only read their own private items", struct_or_changeset, actor do
@@ -49,17 +49,17 @@ iex> normal_user = %User{id: 1, name: "Ed", admin?: false}
 ...> admin = %User{id: 2, name: "Admin", admin?: true}
 ...> invisible_item = %Item{private?: true, invisible?: true, user_id: 2}
 
-iex> Item.Authorization.authorize(normal_user, invisible_item, :read)
+iex> Item.Authorization.authorize(invisible_item, normal_user, :read)
 {:unauthorized, %Item{...}, "only admins can read invisible items"}
 
-iex> Item.Authorization.authorize(admin, invisible_item, :read)
+iex> Item.Authorization.authorize(invisible_item, admin, :read)
 {:ok, %Item{...}}
 
 iex> private_item = %{invisible_item | invisible?: false}
-...> Item.Authorization.authorize(normal_user, private_item, :read)
+...> Item.Authorization.authorize(private_item, normal_user, :read)
 {:unauthorized, %Item{...}, "members can only read their own private items"}
 
-iex> Item.Authorization.authorize(admin, private_item, :read)
+iex> Item.Authorization.authorize(private_item, admin, :read)
 {:ok, %Item{...}}
 ```
 

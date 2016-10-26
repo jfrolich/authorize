@@ -1,3 +1,37 @@
+# defmodule Authorize do
+#   defmacro __using(_options) do
+#   end
+#
+#   defmacro authorize(do: block) do
+#     quote do
+#       defmodule Authorization do
+#         use Authorize.Authorization
+#
+#         unquote(block)
+#       end
+#
+#       def authorize(struct_or_changeset, actor, context \\ nil) do
+#         __MODULE__.Authorization.authorize(struct_or_changeset, actor, context)
+#       end
+#     end
+#   end
+# end
+defmodule Authorize.Inline do
+  defmacro __using__(_options) do
+    quote do
+      use Authorize
+      import unquote(__MODULE__)
+
+    end
+  end
+  defmacro authorize(do: block) do
+    quote do
+      unquote(block)
+    end
+  end
+end
+
+
 defmodule Authorize do
   defmacro __using__(_options) do
     quote do
@@ -19,8 +53,8 @@ defmodule Authorize do
         @rules
         |> Enum.reverse
         |> Enum.filter(fn
-          {ctx, _, _} when is_atom(ctx) -> ctx == :global || ctx == context
-          {ctx, _, _} -> ctx == :global || Enum.member?(ctx, context)
+          {ctx, _, _} when is_atom(ctx) -> ctx == :all || ctx == context
+          {ctx, _, _} -> ctx == :all || Enum.member?(ctx, context)
         end)
         |> Enum.reduce(:undecided, fn
           ({_context, description, rule_func}, :undecided) ->
@@ -34,7 +68,7 @@ defmodule Authorize do
             other
         end
       end
-      def authorize(struct_or_changeset, actor), do: authorize(struct_or_changeset, actor, :global)
+      def authorize(struct_or_changeset, actor), do: authorize(struct_or_changeset, actor, :all)
     end
   end
 
@@ -66,7 +100,7 @@ defmodule Authorize do
   end
 
   defmacro rule(description, changeset, actor, do: rule_block), do:
-    create_rule(:global, description, changeset, actor, do: rule_block)
+    create_rule(:all, description, changeset, actor, do: rule_block)
 
 
   defmacro rule(context, description, changeset, actor, do: rule_block), do:

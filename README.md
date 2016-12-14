@@ -14,32 +14,55 @@ How this translate to code is as follows:
 
 ```elixir
 defmodule Item do
+  use Authorize.Inline
+
   defstruct user_id: nil, private?: false, invisible?: false
+
+  authorize do
+    # signature of rule:
+    # rule(
+    #  actions: one or a list of actions [optional], if not included this rule
+    #           applies to all actions
+    #  description: a description of the the rule, this will be returned as the
+    #               'reason'.
+    #  struct_or_changeset: the struct or changeset that you wish to apply the
+    #                       rule to.
+    #  actor: a data structure that describes the actor of the action. This will
+    #         be the user in most cases.
+    # )
+
+    # An :unauthorized response will stop the chain, as will an :ok response.
+    # When returning :undecided it will evaluate the next rule.
+    rule [:read], "only admins can read invisible items", struct_or_changeset, actor do
+      item = get_struct(struct_or_changeset)
+      cond do
+        item.invisible? and actor.admin? -> :ok
+        item.invisible? -> :unauthorized
+        :else -> :undecided
+      end
+    end
+
+    rule [:read], "actors can read their own private items", struct_or_changeset, actor do
+      item = get_struct(struct_or_changeset)
+      if item.private? and item.user_id == actor.id do
+        :ok
+      else
+        :undecided
+      end
+    end
+
+    rule [:read], "admins can read private items", struct_or_changeset, actor do
+      if actor.admin? and get_struct(struct_or_changeset).private?, do: :ok, else: :undecided
+    end
+
+    rule [:read], "all actors can read public items", struct_or_changeset, actor do
+      if get_struct(struct_or_changeset).public?, do: :ok
+    end
+  end
 end
 
 defmodule User do
   defstruct id: nil, name: nil, admin?: false
-end
-
-defmodule Item.Authorization do
-  use Authorize
-
-  rule [:read], "only admins can read invisible items", struct_or_changeset, actor do
-    if !actor.admin? and get_struct(struct_or_changeset).invisible?, do: :undecided, else: :ok
-  end
-
-  rule [:read], "members can only read their own private items", struct_or_changeset, actor do
-    item = get_struct(struct_or_changeset)
-    if !item.public? and item.user_id == actor.id do
-      :ok
-    else
-      :undecided
-    end
-  end
-
-  rule [:read], "all members can read public items", struct_or_changeset, actor do
-    if get_struct(struct_or_changeset).public?, do: :ok
-  end
 end
 ```
 
@@ -48,19 +71,19 @@ We can now use this authorization module in the following way, with ordered rule
 iex> normal_user = %User{id: 1, name: "Ed", admin?: false}
 ...> admin = %User{id: 2, name: "Admin", admin?: true}
 ...> invisible_item = %Item{private?: true, invisible?: true, user_id: 2}
+...> private_item = %Item{private?: true, user_id: 2}
 
-iex> Item.Authorization.authorize(invisible_item, normal_user, :read)
+iex> Item.authorize(invisible_item, normal_user, :read)
 {:unauthorized, %Item{...}, "only admins can read invisible items"}
 
-iex> Item.Authorization.authorize(invisible_item, admin, :read)
+iex> Item.authorize(invisible_item, admin, :read)
 {:ok, %Item{...}}
 
-iex> private_item = %{invisible_item | invisible?: false}
-...> Item.Authorization.authorize(private_item, normal_user, :read)
-{:unauthorized, %Item{...}, "members can only read their own private items"}
+iex> Item.authorize(private_item, normal_user, :read)
+{:unauthorized, %Item{...}, "no authorization rule found"}
 
-iex> Item.Authorization.authorize(private_item, admin, :read)
-{:ok, %Item{...}}
+iex> Item.authorize(private_item, admin, :read, include_reason: true)
+{:ok, %Item{...}, "members can read their own private items"}
 ```
 
 You can define a rule with `rule [action], description, struct_or_changeset, actor`
@@ -85,7 +108,7 @@ If [available in Hex](https://hex.pm/docs/publish), the package can be installed
 
     ```elixir
     def deps do
-      [{:authorize, "~> 0.1.0"}]
+      [{:authorize, "~> 0.2.0"}]
     end
     ```
 

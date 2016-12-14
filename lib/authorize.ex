@@ -13,7 +13,6 @@ defmodule Authorize.Inline do
   end
 end
 
-
 defmodule Authorize do
   defmacro __using__(_options) do
     quote do
@@ -31,15 +30,15 @@ defmodule Authorize do
       def get_struct(%{__struct__: :"Elixir.Ecto.Changeset"} = changeset), do: changeset.data
       def get_struct(struct), do: struct
 
-      def authorize(struct_or_changeset, actor, context, include_reason \\ false) do
+      def authorize(struct_or_changeset, actor, actions, options \\ [include_reason: false]) do
         @rules
         |> Enum.reverse
         |> Enum.filter(fn
-          {ctx, _, _} when is_atom(ctx) -> ctx == :all || ctx == context
-          {ctx, _, _} -> ctx == :all || Enum.member?(ctx, context)
+          {acts, _, _} when is_atom(acts) -> acts == :all || acts == actions
+          {acts, _, _} -> acts == :all || Enum.member?(acts, actions)
         end)
         |> Enum.reduce(:undecided, fn
-          ({_context, description, rule_func}, :undecided) ->
+          ({_actions, description, rule_func}, :undecided) ->
             apply(__MODULE__, rule_func, [struct_or_changeset, actor])
           (_fun, other) -> other
         end)
@@ -47,7 +46,7 @@ defmodule Authorize do
           :undecided ->
             {:unauthorized, struct_or_changeset, "no authorization rule found"}
           {:ok, struct_or_changeset, reason} ->
-            if include_reason do
+            if Keyword.get(options, :include_reason) do
               {:ok, struct_or_changeset, reason}
             else
               {:ok, struct_or_changeset}
@@ -67,10 +66,10 @@ defmodule Authorize do
     apply(__MODULE__, String.to_atom(description), [struct_or_changeset, actor])
   end
 
-  def create_rule(context, description, struct_or_changeset, actor, do: rule_block) do
+  def create_rule(actions, description, struct_or_changeset, actor, do: rule_block) do
     rule_func = String.to_atom(description)
     quote do
-      @rules {unquote(context), unquote(description), unquote(rule_func)}
+      @rules {unquote(actions), unquote(description), unquote(rule_func)}
       def unquote(rule_func)(unquote(struct_or_changeset), unquote(actor)) do
         case unquote(rule_block) do
           :undecided -> :undecided
@@ -91,6 +90,6 @@ defmodule Authorize do
     create_rule(:all, description, changeset, actor, do: rule_block)
 
 
-  defmacro rule(context, description, changeset, actor, do: rule_block), do:
-    create_rule(context, description, changeset, actor, do: rule_block)
+  defmacro rule(actions, description, changeset, actor, do: rule_block), do:
+    create_rule(actions, description, changeset, actor, do: rule_block)
 end

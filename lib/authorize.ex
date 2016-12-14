@@ -49,7 +49,7 @@ defmodule Authorize do
       def get_struct(%{__struct__: :"Elixir.Ecto.Changeset"} = changeset), do: changeset.data
       def get_struct(struct), do: struct
 
-      def authorize(struct_or_changeset, actor, context) do
+      def authorize(struct_or_changeset, actor, context, include_reason \\ false) do
         @rules
         |> Enum.reverse
         |> Enum.filter(fn
@@ -64,8 +64,13 @@ defmodule Authorize do
         |> case do
           :undecided ->
             {:unauthorized, struct_or_changeset, "no authorization rule found"}
-          other ->
-            other
+          {:ok, struct_or_changeset, reason} ->
+            if include_reason do
+              {:ok, struct_or_changeset, reason}
+            else
+              {:ok, struct_or_changeset}
+            end
+          other -> other
         end
       end
       def authorize(struct_or_changeset, actor), do: authorize(struct_or_changeset, actor, :all)
@@ -87,11 +92,12 @@ defmodule Authorize do
       def unquote(rule_func)(unquote(struct_or_changeset), unquote(actor)) do
         case unquote(rule_block) do
           :undecided -> :undecided
-          :ok -> {:ok, unquote(struct_or_changeset)}
+          :ok -> {:ok, unquote(struct_or_changeset), unquote(description)}
           :unauthorized -> {:unauthorized, unquote(struct_or_changeset), unquote(description)}
 
           # make composition of authorization functions possible
           {:ok, _struct_or_changeset} -> {:ok, unquote(struct_or_changeset)}
+          {:ok, _struct_or_changeset, description} -> {:ok, unquote(struct_or_changeset), description}
           {:unauthorized, _struct_or_changeset, "no authorization rule found"} -> :undecided
           {:unauthorized, _struct_or_changeset, description} -> {:unauthorized, unquote(struct_or_changeset), description}
         end

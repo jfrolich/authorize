@@ -1,21 +1,3 @@
-# defmodule Authorize do
-#   defmacro __using(_options) do
-#   end
-#
-#   defmacro authorize(do: block) do
-#     quote do
-#       defmodule Authorization do
-#         use Authorize.Authorization
-#
-#         unquote(block)
-#       end
-#
-#       def authorize(struct_or_changeset, actor, context \\ nil) do
-#         __MODULE__.Authorization.authorize(struct_or_changeset, actor, context)
-#       end
-#     end
-#   end
-# end
 defmodule Authorize.Inline do
   defmacro __using__(_options) do
     quote do

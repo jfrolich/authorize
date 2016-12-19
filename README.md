@@ -31,6 +31,10 @@ defmodule Item do
     #         be the user in most cases.
     # )
 
+    rule "authorize super admins for everything", _, actor do
+      if actor.super_admin?, do: :ok, else: :undecided
+    end
+
     # An :unauthorized response will stop the chain, as will an :ok response.
     # When returning :undecided it will evaluate the next rule.
     rule [:read], "only admins can read invisible items", struct_or_changeset, actor do
@@ -42,7 +46,9 @@ defmodule Item do
       end
     end
 
-    rule [:read], "actors can read their own private items", struct_or_changeset, actor do
+    # Action can be a list of actions, a single action such as ':read',
+    # or be completely omitted (equivalent to :all)
+    rule :read, "actors can read their own private items", struct_or_changeset, actor do
       item = get_struct(struct_or_changeset)
       if item.private? and item.user_id == actor.id do
         :ok
@@ -62,7 +68,7 @@ defmodule Item do
 end
 
 defmodule User do
-  defstruct id: nil, name: nil, admin?: false
+  defstruct id: nil, name: nil, admin?: false, super_admin?: false
 end
 ```
 

@@ -35,7 +35,7 @@ defmodule Authorize do
         |> Enum.reverse
         |> Enum.filter(fn
           {acts, _, _} when is_atom(acts) -> acts == :all || acts == actions
-          {acts, _, _} -> acts == :all || Enum.member?(acts, actions)
+          {acts, _, _} -> acts == [:all] || Enum.member?(acts, actions)
         end)
         |> Enum.reduce(:undecided, fn
           ({_actions, description, rule_func}, :undecided) ->

@@ -1,7 +1,7 @@
 defmodule Item do
   use Authorize.Inline
 
-  defstruct title: "an item", readonly?: false, invisible?: false
+  defstruct title: "an item", readonly?: false, invisible?: false, secret_field: "secret"
 
   ### this is actually a new and more concise way of defining rules right in
   ### the schema which inserts a authorize function in the module.
@@ -39,8 +39,12 @@ end
 defmodule Item.Authorization do
   use Authorize
 
-  rule [:read], "only admins can read invisible items", struct_or_changeset, actor do
-    if !actor.admin? and get_struct(struct_or_changeset).invisible?, do: :unauthorized, else: :ok
+  rule :read, "only admins can read invisible items", struct_or_changeset, actor do
+    if !actor.admin? and get_struct(struct_or_changeset).invisible?, do: :unauthorized, else: :undecided
+  end
+
+  rule :read, "only admins can read secret_field", struct_or_changeset, fields, actor do
+    if Enum.member?(fields, :secret_field) && !actor.admin?, do: :unauthorized, else: :ok
   end
 
   rule [:create, :update], "users with name john cannot create or update items", struct_or_changeset, actor do
@@ -90,5 +94,11 @@ defmodule AuthorizeTest do
   test "inline authorization" do
     assert {:ok, _, "admins can create items"} = Item.authorize(@normal_item, @admin, :create, include_reason: true)
     assert {:unauthorized, _, _} = Item.authorize(@normal_item, @normal_user, :create, include_reason: true)
+  end
+
+  test "secret field" do
+    assert {:ok, _, "only admins can read secret_field"} = Item.Authorization.authorize_fields(@normal_item, @admin, :read, :secret_field, include_reason: true)
+    assert {:unauthorized, _, "only admins can read secret_field"} = Item.Authorization.authorize_fields(@normal_item, @normal_user, :read, :secret_field)
+
   end
 end

@@ -30,23 +30,31 @@ defmodule Authorize do
       def get_struct(%{__struct__: :"Elixir.Ecto.Changeset"} = changeset), do: changeset.data
       def get_struct(struct), do: struct
 
-      def authorize(struct_or_changeset, actor, actions, options \\ [include_reason: false]) do
+      def authorize_fields(struct_or_changeset, actor, actions, field, options \\ [])
+      def authorize_fields(struct_or_changeset, actor, actions, field, options) when is_atom(field) do
+        authorize(struct_or_changeset, actor, actions, Keyword.put(options, :fields, [field]))
+      end
+      def authorize_fields(struct_or_changeset, actor, actions, fields, options) do
+        authorize(struct_or_changeset, actor, actions, Keyword.put(options, :fields, fields))
+      end
+      def authorize(struct_or_changeset, actor, action, options \\ []) do
         @rules
         |> Enum.reverse
+        # filter based on actions
         |> Enum.filter(fn
-          {acts, _, _} when is_atom(acts) -> acts == :all || acts == actions
-          {acts, _, _} -> acts == [:all] || Enum.member?(acts, actions)
+          {acts, _, _} when is_atom(acts) -> acts == :all || acts == action
+          {acts, _, _} -> Enum.member?(acts, :all) || Enum.member?(acts, action)
         end)
         |> Enum.reduce(:undecided, fn
           ({_actions, description, rule_func}, :undecided) ->
-            apply(__MODULE__, rule_func, [struct_or_changeset, actor])
+            apply(__MODULE__, rule_func, [struct_or_changeset, Keyword.get(options, :fields, []), actor])
           (_fun, other) -> other
         end)
         |> case do
           :undecided ->
             {:unauthorized, struct_or_changeset, "no authorization rule found"}
           {:ok, struct_or_changeset, reason} ->
-            if Keyword.get(options, :include_reason) do
+            if Keyword.get(options, :include_reason, false) do
               {:ok, struct_or_changeset, reason}
             else
               {:ok, struct_or_changeset}
@@ -62,15 +70,15 @@ defmodule Authorize do
     create_authorize
   end
 
-  def apply_rule(description, struct_or_changeset, actor) do
-    apply(__MODULE__, String.to_atom(description), [struct_or_changeset, actor])
-  end
+  # def apply_rule(description, struct_or_changeset, actor) do
+  #   apply(__MODULE__, String.to_atom(description), [struct_or_changeset, actor])
+  # end
 
-  def create_rule(actions, description, struct_or_changeset, actor, do: rule_block) do
+  def create_rule(actions, description, struct_or_changeset, fields, actor, do: rule_block) do
     rule_func = String.to_atom(description)
     quote do
       @rules {unquote(actions), unquote(description), unquote(rule_func)}
-      def unquote(rule_func)(unquote(struct_or_changeset), unquote(actor)) do
+      def unquote(rule_func)(unquote(struct_or_changeset), unquote(fields), unquote(actor)) do
         case unquote(rule_block) do
           :undecided -> :undecided
           :ok -> {:ok, unquote(struct_or_changeset), unquote(description)}
@@ -86,10 +94,21 @@ defmodule Authorize do
     end
   end
 
-  defmacro rule(description, changeset, actor, do: rule_block), do:
-    create_rule(:all, description, changeset, actor, do: rule_block)
+  defmacro rule(description, struct_or_changeset, actor, do: rule_block) when is_binary(description) do
+    fields = []
+    create_rule(:all, description, struct_or_changeset, quote(do: fields), actor, do: rule_block)
+  end
 
+  defmacro rule(description, changeset, fields, actor, do: rule_block) when is_binary(description) do
+    create_rule(:all, description, changeset, fields, actor, do: rule_block)
+  end
 
-  defmacro rule(actions, description, changeset, actor, do: rule_block), do:
-    create_rule(actions, description, changeset, actor, do: rule_block)
+  defmacro rule(actions, description, struct_or_changeset, actor, do: rule_block) when is_binary(description) do
+    fields = []
+    create_rule(actions, description, struct_or_changeset, quote(do: fields), actor, do: rule_block)
+  end
+
+  defmacro rule(actions, description, struct_or_changeset, fields, actor, do: rule_block) when is_binary(description) do
+    create_rule(actions, description, struct_or_changeset, fields, actor, do: rule_block)
+  end
 end

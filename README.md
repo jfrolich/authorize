@@ -2,15 +2,15 @@
 
 Authorize is a rule based authorization module for your elixir app.
 
-Authorize walks through rules your resource to determine if it grands authorization, or not. These rules are easily created using a DSL.
+Authorize walks through rules in your resource to determine if it grants authorization, or not. These rules are easily created using a DSL.
 
 Any rule can return three states:
 
-- `:ok`: means that this rule grands authorization
-- `:undecided`: it will continue with the following rules to see if it will grand authorization
-- `:unauthorized`: it will not grand authorization and will not look at the following rules
+- `:ok`: means that this rule grants authorization
+- `:undecided`: it will continue with the following rules to see if it will grant authorization
+- `:unauthorized`: it will not grant authorization and will not look at the following rules
 
-How this translate to code is as follows:
+How this translates to code is as follows:
 
 ```elixir
 defmodule Item do

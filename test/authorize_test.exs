@@ -7,7 +7,7 @@ defmodule Item do
   ### the schema which inserts a authorize function in the module.
   ### I like this approach better.
   authorize do
-    rule [:create], "admins can create items", struct_or_changeset, actor do
+    rule [:create], "admins can create items", _struct_or_changeset, actor do
       if actor.admin?, do: :ok, else: :undecided
     end
   end
@@ -43,23 +43,23 @@ defmodule Item.Authorization do
     if !actor.admin? and get_struct(struct_or_changeset).invisible?, do: :unauthorized, else: :undecided
   end
 
-  rule :read, "only admins can read secret_field", struct_or_changeset, fields, actor do
+  rule :read, "only admins can read secret_field", _struct_or_changeset, fields, actor do
     if Enum.member?(fields, :secret_field) && !actor.admin?, do: :unauthorized, else: :ok
   end
 
-  rule [:create, :update], "users with name john cannot create or update items", struct_or_changeset, actor do
+  rule [:create, :update], "users with name john cannot create or update items", _struct_or_changeset, actor do
     if actor.name == "John", do: :unauthorized, else: :undecided
   end
 
-  rule [:create], "admins can create items", struct_or_changeset, actor do
+  rule [:create], "admins can create items", _struct_or_changeset, actor do
     if actor.admin?, do: :ok, else: :undecided
   end
 
-  rule [:update], "normal users can update non read-only items", struct_or_changeset, actor do
+  rule [:update], "normal users can update non read-only items", struct_or_changeset, _actor do
     if !get_struct(struct_or_changeset).readonly?, do: :ok, else: :undecided
   end
 
-  rule [:update, :delete], "admins can update and delete any item", struct_or_changeset, actor do
+  rule [:update, :delete], "admins can update and delete any item", _struct_or_changeset, actor do
     if actor.admin?, do: :ok, else: :undecided
   end
 end

@@ -53,12 +53,16 @@ defmodule Authorize do
         |> case do
           :undecided ->
             {:unauthorized, struct_or_changeset, "no authorization rule found"}
-          {:ok, struct_or_changeset, reason} ->
+          :ok ->
+            {:ok, struct_or_changeset}
+          {:ok, reason} ->
             if Keyword.get(options, :include_reason, false) do
               {:ok, struct_or_changeset, reason}
             else
               {:ok, struct_or_changeset}
             end
+          {:unauthorized, reason} ->
+            {:unauthorized, struct_or_changeset, reason}
           other -> other
         end
       end
@@ -67,7 +71,7 @@ defmodule Authorize do
   end
 
   defmacro __before_compile__(_env) do
-    create_authorize
+    create_authorize()
   end
 
   # def apply_rule(description, struct_or_changeset, actor) do
@@ -81,14 +85,14 @@ defmodule Authorize do
       def unquote(rule_func)(unquote(struct_or_changeset), unquote(fields), unquote(actor)) do
         case unquote(rule_block) do
           :undecided -> :undecided
-          :ok -> {:ok, unquote(struct_or_changeset), unquote(description)}
-          :unauthorized -> {:unauthorized, unquote(struct_or_changeset), unquote(description)}
+          :ok -> {:ok, unquote(description)}
+          :unauthorized -> {:unauthorized, unquote(description)}
 
           # make composition of authorization functions possible
-          {:ok, _struct_or_changeset} -> {:ok, unquote(struct_or_changeset)}
-          {:ok, _struct_or_changeset, description} -> {:ok, unquote(struct_or_changeset), description}
+          {:ok, _struct_or_changeset} -> :ok
+          {:ok, _struct_or_changeset, description} -> {:ok, description}
           {:unauthorized, _struct_or_changeset, "no authorization rule found"} -> :undecided
-          {:unauthorized, _struct_or_changeset, description} -> {:unauthorized, unquote(struct_or_changeset), description}
+          {:unauthorized, _struct_or_changeset, description} -> {:unauthorized, description}
         end
       end
     end

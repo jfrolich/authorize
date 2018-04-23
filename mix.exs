@@ -5,12 +5,12 @@ defmodule Authorize.Mixfile do
     [
       app: :authorize,
       description: "Rule based authorization for Elixir",
-      version: "0.3.1",
-      elixir: "~> 1.3",
-      build_embedded: Mix.env == :prod,
-      start_permanent: Mix.env == :prod,
+      version: "1.0.0",
+      elixir: "~> 1.6",
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
       deps: deps(),
-      package: package(),
+      package: package()
     ]
   end
 
@@ -23,7 +23,7 @@ defmodule Authorize.Mixfile do
 
   defp deps do
     [
-      {:ex_doc, ">= 0.0.0", only: :dev},
+      {:ex_doc, ">= 0.0.0", only: :dev}
     ]
   end
 
@@ -33,7 +33,7 @@ defmodule Authorize.Mixfile do
       maintainers: ["Jaap Frölich"],
       licenses: ["MIT"],
       links: %{github: "https://github.com/jfrolich/authorize"},
-      files: ~w(lib mix.exs README.md),
+      files: ~w(lib mix.exs README.md)
     ]
   end
 end

@@ -1,3 +1,4 @@
+![authorize-logo](https://user-images.githubusercontent.com/579279/39227502-8e7fbf56-488b-11e8-9711-5973fe1ba3aa.png)
 # Authorize
 
 Authorize is a rule based authorization module for your elixir app.

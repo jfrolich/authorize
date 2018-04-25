@@ -6,15 +6,15 @@ Authorize walks through rules in your resource to determine if it grants authori
 
 Any rule can return three states:
 
-- `:ok`: means that this rule grants authorization
-- `:undecided`: it will continue with the following rules to see if it will grant authorization
-- `:unauthorized`: it will not grant authorization and will not look at the following rules
+- `:ok`: grand access (return `:ok`)
+- `:next`: got to next rule
+- `:error`: return `{:error, description}` 
 
 How this translates to code is as follows:
 
 ```elixir
 defmodule Item do
-  use Authorize.Inline
+  use Authorize
 
   defstruct user_id: nil, private?: false, invisible?: false
 
@@ -32,17 +32,17 @@ defmodule Item do
     # )
 
     rule "authorize super admins for everything", _, actor do
-      if actor.super_admin?, do: :ok, else: :undecided
+      if actor.super_admin?, do: :ok, else: :next
     end
 
-    # An :unauthorized response will stop the chain, as will an :ok response.
-    # When returning :undecided it will evaluate the next rule.
+    # An :error response will stop the chain, as will an :ok response.
+    # When returning :next it will evaluate the next rule.
     rule [:read], "only admins can read invisible items", struct_or_changeset, actor do
       item = get_struct(struct_or_changeset)
       cond do
         item.invisible? and actor.admin? -> :ok
-        item.invisible? -> :unauthorized
-        :else -> :undecided
+        item.invisible? -> :error
+        :else -> :next
       end
     end
 
@@ -53,12 +53,12 @@ defmodule Item do
       if item.private? and item.user_id == actor.id do
         :ok
       else
-        :undecided
+        :next
       end
     end
 
     rule [:read], "admins can read private items", struct_or_changeset, actor do
-      if actor.admin? and get_struct(struct_or_changeset).private?, do: :ok, else: :undecided
+      if actor.admin? and get_struct(struct_or_changeset).private?, do: :ok, else: :error
     end
 
     rule [:read], "all actors can read public items", struct_or_changeset, actor do
@@ -80,16 +80,16 @@ iex> normal_user = %User{id: 1, name: "Ed", admin?: false}
 ...> private_item = %Item{private?: true, user_id: 2}
 
 iex> Item.authorize(invisible_item, normal_user, :read)
-{:unauthorized, %Item{...}, "only admins can read invisible items"}
+{:error, "only admins can read invisible items"}
 
 iex> Item.authorize(invisible_item, admin, :read)
-{:ok, %Item{...}}
+:ok
 
 iex> Item.authorize(private_item, normal_user, :read)
-{:unauthorized, %Item{...}, "no authorization rule found"}
+{:error, "no authorization rule found"}
 
 iex> Item.authorize(private_item, admin, :read, include_reason: true)
-{:ok, %Item{...}, "members can read their own private items"}
+{:ok, "members can read their own private items"}
 ```
 
 You can define a rule with `rule [action], description, struct_or_changeset, actor`
@@ -98,11 +98,11 @@ With `rule` you are defining a rule.
 
 The first argument is the action this rule applies to. I would recommend to use the well known CRUD (`create`, `read`, `update`, and `delete`) actions, but you can also use something else (Authorize does not care). If you leave the first argument out and start with the description, the rule will apply to all actions.
 
-The second argument is a description, when this rule returns :unauthorized this will be passed as the reason.
+The second argument is a description, when this rule returns :error this will be passed as the reason.
 
 `struct_or_changeset` and `actor` are the variables that you can use in the rule's body. The `struct_or_changeset` is the resource, and `actor` is the actor that tries to perform the action. This can be anything you like. To make it work well with ecto we provide two helper methods `is_changeset?/1` and `get_struct/1`. `is_changeset/1` will return true if `struct_or_changeset` is a changeset. `get_struct/1` returns the struct. If the item is a changeset, it will return `changeset.data`.
 
-If there is no rule found that returns `:unauthorized` or `:ok`, the `authorize/3` function will return `{:unauthorized, _, "no authorization rule found"}`
+If there is no rule found that returns `:error` or `:ok`, the `authorize/3` function will return `{:error, "no authorization rule found"}`
 
 More examples in `test/authorize_test`.
 
@@ -114,7 +114,7 @@ If [available in Hex](https://hex.pm/docs/publish), the package can be installed
 
     ```elixir
     def deps do
-      [{:authorize, "~> 0.3.0"}]
+      [{:authorize, "~> 1.0.0"}]
     end
     ```
 

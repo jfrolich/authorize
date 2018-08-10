@@ -113,16 +113,14 @@ If [available in Hex](https://hex.pm/docs/publish), the package can be installed
 
   1. Add `authorize` to your list of dependencies in `mix.exs`:
 
-    ```elixir
-    def deps do
-      [{:authorize, "~> 1.0.0"}]
-    end
-    ```
+```elixir
+def deps do
+  [{:authorize, "~> 1.0.0"}]
+end
+```
 
   2. Ensure `authorize` is started before your application:
 
-    ```elixir
-    def application do
-      [applications: [:authorize]]
-    end
-    ```
+def application do
+  [applications: [:authorize]]
+end

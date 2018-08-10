@@ -121,6 +121,9 @@ end
 
   2. Ensure `authorize` is started before your application:
 
+```elixir
 def application do
   [applications: [:authorize]]
 end
+```
+

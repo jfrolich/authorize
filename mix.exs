@@ -23,7 +23,7 @@ defmodule Authorize.Mixfile do
 
   defp deps do
     [
-      {:ex_doc, ">= 0.0.0", only: :dev}
+      {:ex_doc, ">= 0.19.1", only: :dev}
     ]
   end
 

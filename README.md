@@ -59,7 +59,7 @@ defmodule Item do
     end
 
     rule [:read], "admins can read private items", struct_or_changeset, actor do
-      if actor.admin? and get_struct(struct_or_changeset).private?, do: :ok, else: :error
+      if actor.admin? and get_struct(struct_or_changeset).private?, do: :ok, else: :next
     end
 
     rule [:read], "all actors can read public items", struct_or_changeset, actor do

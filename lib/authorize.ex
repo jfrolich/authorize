@@ -1,4 +1,7 @@
 defmodule Authorize do
+  @moduledoc """
+  Define authorization rules through a simple DSL
+  """
   defmacro __using__(_options) do
     quote do
       import unquote(__MODULE__)
@@ -7,10 +10,32 @@ defmodule Authorize do
     end
   end
 
+  @doc """
+  Rules are defined within the ```authorize do``` block
+
+  ## Signature of a rule
+  ```rule(actions, description, struct_or_changeset, actor)```
+  * actions
+  One or a list of actions [optional], if not included this rule applies to all actions
+  * description
+  A description of the the rule, this will be returned as the 'reason'.
+  * struct_or_changeset
+  The struct or changeset that you wish to apply the rule to.
+  * actor
+  A data structure that describes the actor of the action. This will be the user in most cases.
+
+  ## Examples
+      authorize do
+        rule [:read], "all actors can read public items", struct_or_changeset, actor do
+          if get_struct(struct_or_changeset).public?, do: :ok
+        end
+      end
+  """
   def authorize(do: block) do
     block
   end
 
+  @doc false
   def create_authorize() do
     quote do
       def is_changeset?(%{__struct__: :"Elixir.Ecto.Changeset"}), do: true
@@ -79,6 +104,7 @@ defmodule Authorize do
     create_authorize()
   end
 
+  @doc false
   def create_rule(actions, description, struct_or_changeset, fields, actor, do: rule_block) do
     rule_func = String.to_atom(description)
 
@@ -109,6 +135,7 @@ defmodule Authorize do
     end
   end
 
+  @doc group: :rules
   defmacro rule(description, struct_or_changeset, actor, do: rule_block)
            when is_binary(description) do
     create_rule(:all, description, struct_or_changeset, quote(do: field), actor, do: rule_block)
@@ -119,6 +146,7 @@ defmodule Authorize do
     create_rule(:all, description, changeset, fields, actor, do: rule_block)
   end
 
+  @doc group: :rules
   defmacro rule(actions, description, struct_or_changeset, actor, do: rule_block)
            when is_binary(description) do
     create_rule(
@@ -131,6 +159,7 @@ defmodule Authorize do
     )
   end
 
+  @doc group: :rules
   defmacro rule(actions, description, struct_or_changeset, fields, actor, do: rule_block)
            when is_binary(description) do
     create_rule(actions, description, struct_or_changeset, fields, actor, do: rule_block)
